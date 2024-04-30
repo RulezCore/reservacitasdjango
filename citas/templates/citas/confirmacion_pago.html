@@ -1,0 +1,20 @@
+<!-- confirmacion_pago.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Confirmación de Pago</title>
+</head>
+<body>
+    <h1>Confirmación de Pago</h1>
+    <p>{{ mensaje }}</p>
+    <div>
+        <h2>Detalles de la Cita:</h2>
+        <p>Nombre: {{ cita.nombre_completo }}</p>
+        <p>Fecha: {{ cita.fecha }}</p>
+        <p>Hora: {{ cita.hora }}</p>
+        <p>Descripción del Caso: {{ cita.describe_tu_caso }}</p>
+    </div>
+    <a href="{% url 'citas:cita-form' %}">Volver al inicio</a>
+</body>
+</html>

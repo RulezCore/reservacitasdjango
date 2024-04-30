@@ -1,0 +1,18 @@
+{% extends "citas/base.html" %}
+
+{% block title %}A habido un error con el pago{% endblock title %}
+
+{% block content %}
+<div class="super-container">
+  <div class="container py-5">
+    <div class="row">
+      <div class="col-md-12">
+        <div class="alert alert-danger" role="alert">
+          {{error}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+

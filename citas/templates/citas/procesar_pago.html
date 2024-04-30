@@ -1,0 +1,166 @@
+{% extends "citas/base.html" %}
+
+{% block title %}Pasarela de pago{% endblock title %}
+
+{% load citas_filters %}
+
+{% block includesHEAD %}
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  .StripeElement {
+      margin-bottom: 20px;  /* Espacio entre elementos */
+      padding: 10px 12px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background-color: white;
+  }
+</style>
+{% endblock includesHEAD %}
+
+{% block content %}
+<!-- procesar_pago.html -->
+
+<div class="super-container">
+  <div class="container py-5">
+    <div class="row">
+      <h2 class="pb-3">Pagar Cita</h2>
+      <hr>
+      <div class="col-md-8" id="columna">
+        <h3 class="mb-3">Datos Bancarios:</h3>
+        <form action="{% url 'citas:proceso_pago' cita.cita_id %}" method="post" id="payment-form">
+            {% csrf_token %}
+            <div id="card-element">
+              <div id="card-number-element" class="StripeElement">
+                <label>Nº de tarjeta:</label>
+              </div> <!-- Elemento para el número de la tarjeta -->
+              <div id="card-expiry-element" class="StripeElement"></div> <!-- Elemento para la fecha de expiración -->
+              <div id="card-cvc-element" class="StripeElement"></div> <!-- Elemento para el CVC -->
+              <div id="card-errors" role="alert"></div>
+            </div>
+            <!-- Used to display form errors. -->
+            <div id="card-errors" role="alert"></div>
+            <button class="btn btn-primary" type="submit">Pagar</button>
+            <a href="{% url 'citas:cita-form' %}" class="btn btn-danger">Cancelar pre-cita</a>
+        </form>
+      </div>
+      <div class="col-md-4" id="columna-flex">
+        <h3>Resumen:</h3>
+        <div>
+          <h5>Nombre: </h5><p><i>{{cita.nombre_completo}}</i></p>
+        </div>
+        <div>
+          <h5>Email: </h5><p><i>{{cita.email}}</i></p>
+        </div>
+        <div>
+          <h5>Teléfono: </h5><p><i>{{cita.telefono_contacto}}</i></p>
+        </div>
+        <div>
+          <h5>Fecha: </h5><p><i>{{cita.fecha}}</i></p>
+        </div>
+        <div>
+          <h5>Hora:</h5>
+          <p><i>{{cita.hora}}</i></p>
+        </div>
+        <div>
+          <h5>Precio:</h5>
+          <p><i>{{precio | format_price}}€</i> <b>IVA Incl</b></p>
+        </div>      
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+  // Create a Stripe client.
+  var stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+
+  // Create an instance of Elements.
+  var elements = stripe.elements();
+
+  // Custom styling can be passed to options when creating an Element.
+  var style = {
+      base: {
+          color: '#32325d',
+          lineHeight: '24px',
+//          fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+          fontSmoothing: 'antialiased',
+          fontSize: '16px',
+          '::placeholder': {
+              color: '#aab7c4'
+          }
+      },
+      invalid: {
+          color: '#fa755a',
+          iconColor: '#fa755a'
+      }
+  };
+
+  // Create an instance of the card number Element.
+  var cardNumber = elements.create('cardNumber', {style: style, showIcon: true});
+  // Create an instance of the card expiry Element.
+  var cardExpiry = elements.create('cardExpiry', {style: style});
+  // Create an instance of the card cvc Element.
+  var cardCvc = elements.create('cardCvc', {style: style});
+
+  // Add an instance of the card number Element into the `card-number-element` div.
+  cardNumber.mount('#card-number-element');
+  // Add an instance of the card expiry Element into the `card-expiry-element` div.
+  cardExpiry.mount('#card-expiry-element');
+  // Add an instance of the card cvc Element into the `card-cvc-element` div.
+  cardCvc.mount('#card-cvc-element');
+
+  // Handle real-time validation errors from the card elements.
+  cardNumber.addEventListener('change', function(event) {
+      var displayError = document.getElementById('card-errors');
+      if (event.error) {
+          displayError.textContent = event.error.message;
+      } else {
+          displayError.textContent = '';
+      }
+  });
+
+  cardExpiry.addEventListener('change', function(event) {
+      var displayError = document.getElementById('card-errors');
+      if (event.error) {
+          displayError.textContent = event.error.message;
+      } else {
+          displayError.textContent = '';
+      }
+  });
+
+  cardCvc.addEventListener('change', function(event) {
+      var displayError = document.getElementById('card-errors');
+      if (event.error) {
+          displayError.textContent = event.error.message;
+      } else {
+          displayError.textContent = '';
+      }
+  });
+
+  // Handle form submission.
+  var form = document.getElementById('payment-form');
+  form.addEventListener('submit', function(event) {
+      event.preventDefault();
+
+      stripe.createToken(cardNumber).then(function(result) {
+          if (result.error) {
+              // Inform the user if there was an error.
+              var errorElement = document.getElementById('card-errors');
+              errorElement.textContent = result.error.message;
+          } else {
+              // Send the token to your server.
+              var hiddenInput = document.createElement('input');
+              hiddenInput.setAttribute('type', 'hidden');
+              hiddenInput.setAttribute('name', 'stripeToken');
+              hiddenInput.setAttribute('value', result.token.id);
+              form.appendChild(hiddenInput);
+
+              // Submit the form
+              form.submit();
+          }
+      });
+  });
+</script>
+{% endblock scripts %}

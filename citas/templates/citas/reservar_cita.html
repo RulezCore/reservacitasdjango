@@ -1,0 +1,211 @@
+{% extends "citas/base.html" %}
+
+{% block title %}Reservar una cita{% endblock title %}
+
+{% block includesHEAD %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
+{% endblock includesHEAD %}
+
+{% block content %}
+<div class="super-container">
+  <div class="container py-5">
+    <h1>Reservar tu cita:</h1>
+    <hr>
+    <div class="row">
+      <div class="col-md-12 px-5" id="columna">
+        <form method="post">
+          {% csrf_token %} 
+          <div id="formulario-pasos">
+            <div id="paso-1" class="paso">
+              <h2>Paso 1:</h2>
+              <h5> Seleccione una fecha para su cita:</h5>
+              {% comment %} <input type="date" class="form-control" id="date" name="fecha" required> <br> {% endcomment %}
+              <div class="calendario py-3">
+                <input type="date" id="date" name="fecha" hidden required>
+              </div>
+              <button class="btn btn-primary mt-3" id="btn-siguiente-1" disabled>Siguiente</button>
+            </div>
+        
+            <div id="paso-2" class="paso">
+              <h2>Paso 2:</h2>
+              <h5>Ahora seleccione la hora que mejor le venga, según las horas disponibles</h5>
+              <select id="hoursDropdown" class="form-select" required name="hora">
+                <option selected>Selecciona la hora de la cita</option>
+              </select>
+              <button class="btn btn-primary mt-3" id="btn-siguiente-2">Siguiente</button>
+            </div>
+        
+            <div id="paso-3" class="paso">
+              <h2>Paso 3: Ya queda poco, ahora rellene con sus datos:</h2>
+              <div class="form-group">
+                <input type="text" class="form-control mt-3" id="nombreCompleto" name="nombre_completo" placeholder="Ingrese su nombre completo" required>
+              </div>
+
+              <div class="form-group">
+                <input type="tel" class="form-control mt-3" id="telefonoContacto" name="telefono_contacto" placeholder="Ej: +34 654 321 123" required>
+              </div>
+
+              <div class="form-group">
+                <input type="email" class="form-control mt-3" id="email" name="email" placeholder="Ingrese su correo electrónico" required>
+              </div>
+
+              <div class="form-group">
+                <textarea class="form-control mt-3" id="describeTuCaso" name="describe_tu_caso" rows="3" placeholder="Describa en detalle el motivo de su cita" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary mt-3" id="btn-enviar">Enviar formulario</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+
+
+  
+{% block scripts %}
+{% comment %} Manejar Calendario {% endcomment %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const btnSiguiente1 = document.getElementById("btn-siguiente-1");
+
+    function fechaSeleccionada(selectedDates, dateStr, instance) {
+      btnSiguiente1.disabled = false;
+    }
+
+    flatpickr("#date", {
+      enableTime: false,
+      dateFormat: "Y-m-d",
+      inline: true,
+      minDate: "today",
+      firstDayOfWeek: 1,
+      locale: 'es',
+      "disable": [
+          function(date) {
+              // Deshabilitar los fines de semana: domingo = 0, sábado = 6
+              return (date.getDay() === 0 || date.getDay() === 6);
+          }
+      ],
+      onChange: fechaSeleccionada
+    });
+  });
+</script>
+{% comment %} Manejo de pestañas y lógica para la peticion {% endcomment %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Variables para controlar el paso actual
+  var pasoActual = 1;
+  var totalPasos = 3;
+
+  // Función para mostrar el paso indicado
+  function mostrarPaso(paso) {
+    // Ocultar la sección actual
+    var seccionActual = document.getElementById("paso-" + pasoActual);
+    seccionActual.style.display = "none";
+
+    // Mostrar la siguiente sección
+    pasoActual = paso;
+    var siguienteSeccion = document.getElementById("paso-" + pasoActual);
+    siguienteSeccion.style.display = "block";
+
+    // Actualizar el estado de los botones
+    actualizarBotones();
+  }
+
+  // Función para actualizar el estado de los botones
+  function actualizarBotones() {
+    // Deshabilitar el botón de "Siguiente" en la última sección
+    var btnSiguienteUltima = document.getElementById("btn-siguiente-" + pasoActual);
+    if (pasoActual === totalPasos) {
+      btnSiguienteUltima.disabled = true;
+    } else {
+      btnSiguienteUltima.disabled = false;
+    }
+  }
+
+  // Función para recuperar dinámicamente las horas disponibles de una fecha
+  async function updateHoursDropdown(fechaSeleccionada) {
+    // Obtener el elemento select para las horas
+    const hoursSelect = document.getElementById('hoursDropdown');
+  
+    // Limpiar las opciones existentes en el select
+    hoursSelect.innerHTML = '';
+  
+    // Construir la URL de la API para recuperar las horas disponibles
+    const apiUrl = `{% url 'citas:disponibilidad' %}?fecha=${fechaSeleccionada}`;
+  
+    // Realizar la solicitud a la API
+    const response = await fetch(apiUrl);
+    const data = await response.json();
+  
+    // Verificar si hay horas disponibles
+    if (data.horas_disponibles.length > 0) {
+      // Recorrer las horas disponibles y agregarlas como opciones al select
+      data.horas_disponibles.forEach(hourSlot => {
+        const option = document.createElement('option');
+        option.value = hourSlot['hora:']; // Suponiendo que 'hora:' es la clave en el JSON
+        option.text = hourSlot['hora:'];
+        hoursSelect.appendChild(option);
+      });
+    } else {
+      // No hay horas disponibles, agregar una opción de marcador de posición
+      const option = document.createElement('option');
+      option.value = '';
+      option.text = 'No hay horas disponibles';
+      option.disabled = true;
+      hoursSelect.appendChild(option);
+    }
+  }
+
+  var btnSiguiente1 = document.getElementById("btn-siguiente-1");
+  const dateInput = document.getElementById('date');
+
+  // Eventos click para los botones de "Siguiente"
+  btnSiguiente1.addEventListener("click", function(event) {
+    event.preventDefault(); // Evita el envío del formulario
+    const dateInput = document.getElementById('date');
+    const selectedDate = dateInput.value;
+    if (selectedDate.length > 0) {
+      updateHoursDropdown(selectedDate)
+      mostrarPaso(2);
+    }
+  });
+
+  var btnSiguiente2 = document.getElementById("btn-siguiente-2");
+  btnSiguiente2.addEventListener("click", function(event) {
+    event.preventDefault(); // Evita el envío del formulario
+    console.log('2')
+    mostrarPaso(3);
+  });
+
+  function bloquearFinesDeSemana(date) {
+    var day = date.getDay();
+    // Días en JavaScript: 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    // Bloquea los días 0 (Domingo) y 6 (Sábado)
+    return [(day !== 0 && day !== 6), ''];
+  }
+
+  function actualizarMinimo() {
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //Enero es 0
+    var yyyy = today.getFullYear();
+    today = yyyy + '-' + mm + '-' + dd;
+    document.getElementById("date").setAttribute("min", today);
+  }
+
+  actualizarMinimo();
+  $("#date").datepicker({
+    beforeShowDay: bloquearFinesDeSemana
+  });
+  });
+
+  
+  
+</script>
+{% endblock scripts %}
+    
