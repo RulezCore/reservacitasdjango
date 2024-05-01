@@ -1,20 +1,24 @@
-<!-- confirmacion_pago.html -->
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Confirmación de Pago</title>
-</head>
-<body>
-    <h1>Confirmación de Pago</h1>
-    <p>{{ mensaje }}</p>
-    <div>
-        <h2>Detalles de la Cita:</h2>
-        <p>Nombre: {{ cita.nombre_completo }}</p>
-        <p>Fecha: {{ cita.fecha }}</p>
-        <p>Hora: {{ cita.hora }}</p>
-        <p>Descripción del Caso: {{ cita.describe_tu_caso }}</p>
+{% extends "citas/base.html" %}
+
+{% block content %}
+<div class="super-container">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12 py-5">
+        <p>{{ mensaje }}</p>
+        <div>
+          <h1>Detalles de la Cita:</h1>
+          <p><strong>Nombre:</strong> {{ cita.nombre_completo }}</p>
+          <p><strong>Fecha:</strong> {{ cita.fecha }}</p>
+          <p><strong>Hora:</strong> {{ cita.hora }}</p>
+          <p><strong>Descripción del Caso:</strong><br/> {{ cita.describe_tu_caso }}</p>
+          <a class="btn btn-primary" href="{% url 'citas:cita-form' %}">Volver al inicio</a>
+
+        </div>
+      </div>
     </div>
-    <a href="{% url 'citas:cita-form' %}">Volver al inicio</a>
-</body>
-</html>
+  </div>
+</div>
+
+
+{% endblock content %}

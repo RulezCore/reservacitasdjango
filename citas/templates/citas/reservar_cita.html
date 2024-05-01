@@ -34,6 +34,7 @@
               <select id="hoursDropdown" class="form-select" required name="hora">
                 <option selected>Selecciona la hora de la cita</option>
               </select>
+              <button class="btn btn-secondary mt-3" id="btn-anterior-2" style="margin-right: 10px;">Atrás</button>
               <button class="btn btn-primary mt-3" id="btn-siguiente-2">Siguiente</button>
             </div>
         
@@ -54,7 +55,9 @@
               <div class="form-group">
                 <textarea class="form-control mt-3" id="describeTuCaso" name="describe_tu_caso" rows="3" placeholder="Describa en detalle el motivo de su cita" required></textarea>
               </div>
-              <button type="submit" class="btn btn-primary mt-3" id="btn-enviar">Enviar formulario</button>
+              <p class="my-3">El precio de la cita es de 50€ <strong>Iva Incluido</strong></p>
+              <button class="btn btn-secondary mt-3" id="btn-anterior-3" style="margin-right: 10px;">Atrás</button>
+              <button type="submit" class="btn btn-primary mt-3" id="btn-enviar">Reservar y pagar</button>
             </div>
           </div>
         </form>
@@ -97,114 +100,74 @@
 {% comment %} Manejo de pestañas y lógica para la peticion {% endcomment %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Variables para controlar el paso actual
-  var pasoActual = 1;
-  var totalPasos = 3;
-
-  // Función para mostrar el paso indicado
-  function mostrarPaso(paso) {
-    // Ocultar la sección actual
-    var seccionActual = document.getElementById("paso-" + pasoActual);
-    seccionActual.style.display = "none";
-
-    // Mostrar la siguiente sección
-    pasoActual = paso;
-    var siguienteSeccion = document.getElementById("paso-" + pasoActual);
-    siguienteSeccion.style.display = "block";
-
-    // Actualizar el estado de los botones
-    actualizarBotones();
-  }
-
-  // Función para actualizar el estado de los botones
-  function actualizarBotones() {
-    // Deshabilitar el botón de "Siguiente" en la última sección
-    var btnSiguienteUltima = document.getElementById("btn-siguiente-" + pasoActual);
-    if (pasoActual === totalPasos) {
-      btnSiguienteUltima.disabled = true;
-    } else {
-      btnSiguienteUltima.disabled = false;
+    var pasoActual = 1;
+    const totalPasos = 3;
+  
+    function mostrarPaso(paso) {
+      document.querySelectorAll('.paso').forEach(paso => paso.style.display = 'none');
+      pasoActual = paso;
+      document.getElementById(`paso-${paso}`).style.display = 'block';
+      actualizarBotones();
     }
-  }
-
-  // Función para recuperar dinámicamente las horas disponibles de una fecha
-  async function updateHoursDropdown(fechaSeleccionada) {
-    // Obtener el elemento select para las horas
-    const hoursSelect = document.getElementById('hoursDropdown');
   
-    // Limpiar las opciones existentes en el select
-    hoursSelect.innerHTML = '';
+    function actualizarBotones() {
+      if (pasoActual > 1) {
+        document.getElementById(`btn-anterior-${pasoActual}`).style.display = 'inline-block';
+      }
+    }
   
-    // Construir la URL de la API para recuperar las horas disponibles
-    const apiUrl = `{% url 'citas:disponibilidad' %}?fecha=${fechaSeleccionada}`;
-  
-    // Realizar la solicitud a la API
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-  
-    // Verificar si hay horas disponibles
-    if (data.horas_disponibles.length > 0) {
-      // Recorrer las horas disponibles y agregarlas como opciones al select
-      data.horas_disponibles.forEach(hourSlot => {
+    async function updateHoursDropdown(fechaSeleccionada) {
+      const hoursSelect = document.getElementById('hoursDropdown');
+      hoursSelect.innerHTML = '';
+      const btnSiguiente2 = document.getElementById("btn-siguiente-2");
+      const apiUrl = `/disponibilidad/?fecha=${fechaSeleccionada}`;
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      
+      if (data.horas_disponibles.length > 0) {
+        data.horas_disponibles.forEach(hourSlot => {
+          const option = document.createElement('option');
+          option.value = hourSlot.hora;
+          option.text = hourSlot.hora;
+          btnSiguiente2.disabled = false;
+          hoursSelect.appendChild(option);
+        });
+      } else {
         const option = document.createElement('option');
-        option.value = hourSlot['hora:']; // Suponiendo que 'hora:' es la clave en el JSON
-        option.text = hourSlot['hora:'];
+        option.value = '';
+        option.text = 'No hay horas disponibles';
+        option.disabled = true;
+        option.selected = true; 
+        btnSiguiente2.disabled = true;
         hoursSelect.appendChild(option);
-      });
-    } else {
-      // No hay horas disponibles, agregar una opción de marcador de posición
-      const option = document.createElement('option');
-      option.value = '';
-      option.text = 'No hay horas disponibles';
-      option.disabled = true;
-      hoursSelect.appendChild(option);
+      }
     }
-  }
-
-  var btnSiguiente1 = document.getElementById("btn-siguiente-1");
-  const dateInput = document.getElementById('date');
-
-  // Eventos click para los botones de "Siguiente"
-  btnSiguiente1.addEventListener("click", function(event) {
-    event.preventDefault(); // Evita el envío del formulario
-    const dateInput = document.getElementById('date');
-    const selectedDate = dateInput.value;
-    if (selectedDate.length > 0) {
-      updateHoursDropdown(selectedDate)
-      mostrarPaso(2);
-    }
-  });
-
-  var btnSiguiente2 = document.getElementById("btn-siguiente-2");
-  btnSiguiente2.addEventListener("click", function(event) {
-    event.preventDefault(); // Evita el envío del formulario
-    console.log('2')
-    mostrarPaso(3);
-  });
-
-  function bloquearFinesDeSemana(date) {
-    var day = date.getDay();
-    // Días en JavaScript: 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-    // Bloquea los días 0 (Domingo) y 6 (Sábado)
-    return [(day !== 0 && day !== 6), ''];
-  }
-
-  function actualizarMinimo() {
-    var today = new Date();
-    var dd = String(today.getDate()).padStart(2, '0');
-    var mm = String(today.getMonth() + 1).padStart(2, '0'); //Enero es 0
-    var yyyy = today.getFullYear();
-    today = yyyy + '-' + mm + '-' + dd;
-    document.getElementById("date").setAttribute("min", today);
-  }
-
-  actualizarMinimo();
-  $("#date").datepicker({
-    beforeShowDay: bloquearFinesDeSemana
-  });
-  });
-
   
+    document.getElementById("btn-siguiente-1").addEventListener("click", function(event) {
+      event.preventDefault();
+      updateHoursDropdown(document.getElementById('date').value);
+      if (updateHoursDropdown == false) {
+        console.log(updateHoursDropdown)
+      }
+      mostrarPaso(2);
+    });
+  
+    document.getElementById("btn-siguiente-2").addEventListener("click", function(event) {
+      event.preventDefault();
+      mostrarPaso(3);
+    });
+  
+    // Añadir los eventos de los botones "Atrás"
+    document.getElementById("btn-anterior-2").addEventListener("click", function(e) {
+      event.preventDefault()
+      mostrarPaso(1);
+    });
+  
+    document.getElementById("btn-anterior-3").addEventListener("click", function(e) {
+      event.preventDefault()
+      mostrarPaso(2);
+    });
+  });
   
 </script>
 {% endblock scripts %}
