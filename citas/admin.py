@@ -4,10 +4,10 @@ from .models import Cita
 
 @admin.register(Cita)
 class CitaAdmin(admin.ModelAdmin):
-    list_display = ('cita_id', 'nombre_completo', 'email', 'show_estado')
+    list_display = ('cita_id', 'fecha', 'hora', 'nombre_completo', 'email', 'show_estado')
     list_filter = ('estado', 'fecha', 'nombre_completo', 'telefono_contacto', 'email', )
     search_fields = ('cita_id', 'nombre_completo', 'email', 'telefono_contacto')
-    ordering = ('fecha', 'hora')
+    ordering = ('-fecha', '-hora')
 
     def show_estado(self, obj):
         if obj.estado == 'confirmada':

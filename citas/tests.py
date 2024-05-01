@@ -2,10 +2,16 @@ from django.test import TestCase
 from django.core.exceptions import ValidationError
 from datetime import datetime
 from .models import Cita
+from django.test import TestCase, Client
+from django.urls import reverse
 from datetime import date
 
 # TESTS DE MODELO
 class CitaModelTest(TestCase):
+  
+  def setUp(self):
+    self.client = Client()
+    # self.url = reverse('citas:reservar_cita')
 
   def test_crear_cita_fin_de_semana(self):
     """ Verifica que no se pueden crear citas los fines de semana """
@@ -80,5 +86,14 @@ class CitaModelTest(TestCase):
         self.assertTrue('hora' in e.message_dict)
     else:
         self.fail("ValidationError no fue lanzada con campos vacíos")
+        
+  def test_filtrar_disponibilidad_fecha_invalida(self):
+      response = self.client.get(reverse('citas:disponibilidad'), {'fecha': 'not-a-date'})
+      self.assertEqual(response.status_code, 400)
+
+  def test_filtrar_disponibilidad_fecha_valida(self):
+      response = self.client.get(reverse('citas:disponibilidad'), {'fecha': '2024-01-01'})
+      self.assertEqual(response.status_code, 200)
+      self.assertIn('horas_disponibles', response.json())
 
 
